@@ -184,7 +184,7 @@ To produce a list of computers that the scripts will use as input, where each li
     (&(objectCategory=Computer)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))
     ````
 
-Otherwise, you can produce the list with:
+    Otherwise, you can produce the list with:
 
     ````get-adcomputer -searchbase "dc=contoso,dc=corp" -filter {(enabled -eq "true")} | select name –expandproperty name````
 
