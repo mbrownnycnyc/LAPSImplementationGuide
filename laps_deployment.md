@@ -37,11 +37,11 @@ Suggested:
 
 3.  On ADMINCONSOLE, run the following to perform the installation of the administrative portions of LAPS:
 
-````msiexec /q /l c:\lapsmgmtinst.log /i LAPS.x64.msi ADDLOCAL=Management.UI,Management.PS````
+    ````msiexec /q /l c:\lapsmgmtinst.log /i LAPS.x64.msi ADDLOCAL=Management.UI,Management.PS````
 
 4.  On ADMINCONSOLE, perform the installation of the ADMx files:
 
-````msiexec /q /l c:\lapsadmxinst.log /i LAPS.x64.msi ADDLOCAL=Management.ADMX````
+    ````msiexec /q /l c:\lapsadmxinst.log /i LAPS.x64.msi ADDLOCAL=Management.ADMX````
 
 5.  Copy the following files to the respective directories the centralized policy store located at :
 
