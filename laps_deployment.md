@@ -54,29 +54,29 @@ Suggested:
 
 1.  If desired, create a good backup of the schema master’s system state. On the schema master (as determined), run the following[1] which will be a few GB, verify “windows server backup features” feature are fully installed:
 
-````wbadmin start systemstatebackup -backuptarget:e:````
+    ````wbadmin start systemstatebackup -backuptarget:e:````
 
 2.  On ADMINCONSOLE perform the following to add the necessary attributes to objects of the computer class:
 
-````
-Powershell.exe
-Import-module AdmPwd.PS
-Update-AdmPwdADSchema
-````
+    ````
+    Powershell.exe
+    Import-module AdmPwd.PS
+    Update-AdmPwdADSchema
+    ````
 
 3.  You can verify that the schema extension was successful by checking schema change history by running the following:
 
-````
-powershell.exe
-Import-Module ActiveDirectory
-$schema = Get-ADObject -SearchBase ((Get-ADRootDSE).schemaNamingContext)
--SearchScope OneLevel -Filter * -Property objectClass, name, whenChanged,
-whenCreated | Select-Object objectClass, name, whenCreated, whenChanged,
-@{name="event";expression={($_.whenCreated).Date.ToShortDateString()}} |
-Sort-Object whenCreated
-$schema | Format-Table objectClass, name, whenCreated, whenChanged
--GroupBy event -AutoSize
-````
+    ````
+    powershell.exe
+    Import-Module ActiveDirectory
+    $schema = Get-ADObject -SearchBase ((Get-ADRootDSE).schemaNamingContext)
+    -SearchScope OneLevel -Filter * -Property objectClass, name, whenChanged,
+    whenCreated | Select-Object objectClass, name, whenCreated, whenChanged,
+    @{name="event";expression={($_.whenCreated).Date.ToShortDateString()}} |
+    Sort-Object whenCreated
+    $schema | Format-Table objectClass, name, whenCreated, whenChanged
+    -GroupBy event -AutoSize
+    ````
 
 **Setting permissions:**
 
@@ -99,24 +99,24 @@ To remove Extended Rights permissions: (taken directly from LAPS_OperationsGuide
 
 1.  On the administrative console, run:
 
-````
-powershell.exe
-Import-module AdmPwd.PS
-Find-AdmPwdExtendedrights –identity “dc=contoso,dc=corp” | out-gridview
-````
-There shouldn’t be any “ExtendedRightHolders” that you do not wish on OUs or objects that you wish.
+    ````
+    powershell.exe
+    Import-module AdmPwd.PS
+    Find-AdmPwdExtendedrights –identity “dc=contoso,dc=corp” | out-gridview
+    ````
+    There shouldn’t be any “ExtendedRightHolders” that you do not wish on OUs or objects that you wish.
 
 **To add write permission to the SELF ACE to the needed computer class objects’ attributes:**
 
 1.  On the administrative console, run:
 
-````
-powershell.exe
-Import-module AdmPwd.PS
-Set-AdmPwdComputerSelfPermission -OrgUnit “dc=contoso,dc=corp”
-````
+    ````
+    powershell.exe
+    Import-module AdmPwd.PS
+    Set-AdmPwdComputerSelfPermission -OrgUnit “dc=contoso,dc=corp”
+    ````
 
-The approach to allow any computer object to make the intended changes is not a security risk. Otherwise, you could be granular with which OUs.
+    The approach to allow any computer object to make the intended changes is not a security risk. Otherwise, you could be granular with which OUs.
 
 2.  To verify, use adsiedit.msc to take a look at the effective permissions on the security tab, of the domain-wide SELF built-in ACE on a computer object below the targeted OU. Look for the following permissions:
 
@@ -135,11 +135,11 @@ The approach to allow any computer object to make the intended changes is not a 
 
 2.  On the administrative console, run:
 
-````
-powershell.exe
-Import-module AdmPwd.PS
-Set-AdmPwdReadPasswordPermission -OrgUnit “dc=contoso,dc=corp”-AllowedPrincipals LAPS_Allowed_Read
-````
+    ````
+    powershell.exe
+    Import-module AdmPwd.PS
+    Set-AdmPwdReadPasswordPermission -OrgUnit “dc=contoso,dc=corp”-AllowedPrincipals LAPS_Allowed_Read
+    ````
 
 3.  To verify, use adsiedit.msc to take a look at the effective permissions on the security tab, of the contoso\LAPS_Allowed_Read ACE on a computer object below the targeted OU. Look for the following permissions:
 
@@ -158,11 +158,11 @@ Set-AdmPwdReadPasswordPermission -OrgUnit “dc=contoso,dc=corp”-AllowedPrinci
 
 2.  On the administrative console, run:
 
-````
-powershell.exe
-Import-module AdmPwd.PS
-Set-AdmPwdResetPasswordPermission –OrgUnit “dc=contoso,dc=corp”-AllowedPrincipals LAPS_Allowed_Reset
-````
+    ````
+    powershell.exe
+    Import-module AdmPwd.PS
+    Set-AdmPwdResetPasswordPermission –OrgUnit “dc=contoso,dc=corp”-AllowedPrincipals LAPS_Allowed_Reset
+    ````
 
 3.  To verify, use adsiedit.msc to take a look at the effective permissions on the security tab, of the contoso\LAPS_Allowed_Reset ACE on a computer object below the targeted OU. Look for the following permissions:
 
@@ -180,63 +180,63 @@ To produce a list of computers that the scripts will use as input, where each li
 
 1.  Produce a list of computers by using dsa.msc “Saved Queries” feature near the top of the tree, exporting to a CSV, then opening in Excel. Copy the all the computer names into a text file (remove non-target computers). The LDAP query should be:
 
-````
-(&(objectCategory=Computer)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))
-````
+    ````
+    (&(objectCategory=Computer)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))
+    ````
 
 Otherwise, you can produce the list with:
 
-````get-adcomputer -searchbase "dc=contoso,dc=corp" -filter {(enabled -eq "true")} | select name –expandproperty name````
+    ````get-adcomputer -searchbase "dc=contoso,dc=corp" -filter {(enabled -eq "true")} | select name –expandproperty name````
 
 2.  To verify that you don’t have any local admin accounts you don’t know about, run the following in powershell (I’m not proud of it, but it does the job):
 
-````
-foreach ($computername in (get-content "\\deployserver\LAPS\targetlist.txt") ) {
-  ((get-wmiobject Win32_GroupUser -computer $computername | `
-  where { `
-   ( $_.GroupComponent -like '*Administrators*' ) `
-   -and `
-   ( $_.GroupComponent -notlike '*$((get-wmiobject win32_computersystem).domain.split('.')[0])*' ) `
-   -and `
-   ( $_.PartComponent -like '*Win32_UserAccount*') `
-   -and `
-   (
-    ( $_.PartComponent -like "*Domain=""$computername""*") `
-    -or `
-    ( $_.PartComponent -notlike "*Domain=""$((get-wmiobject win32_computersystem).domain.split('.')[0])""*") `
-    ) `
-   } `
-   ).partcomponent) | foreach { ($_).split('"')[1,3] ; "!!"} 2>&1 >> c:\localadminlist.out
-}
-````
+    ````
+    foreach ($computername in (get-content "\\deployserver\LAPS\targetlist.txt") ) {
+    ((get-wmiobject Win32_GroupUser -computer $computername | `
+    where { `
+    ( $_.GroupComponent -like '*Administrators*' ) `
+    -and `
+    ( $_.GroupComponent -notlike '*$((get-wmiobject win32_computersystem).domain.split('.')[0])*' ) `
+    -and `
+    ( $_.PartComponent -like '*Win32_UserAccount*') `
+    -and `
+    (
+        ( $_.PartComponent -like "*Domain=""$computername""*") `
+        -or `
+        ( $_.PartComponent -notlike "*Domain=""$((get-wmiobject win32_computersystem).domain.split('.')[0])""*") `
+        ) `
+    } `
+    ).partcomponent) | foreach { ($_).split('"')[1,3] ; "!!"} 2>&1 >> c:\localadminlist.out
+    }
+    ````
 
-You can review the file c:\localadminlist.out for any computer that has any administrator other than localadmin, then make the corrections as necessary: remove any administrator that isn’t \`localadmin\` and/or rename \`Administrator\` to \`localadmin\`.
+    You can review the file c:\localadminlist.out for any computer that has any administrator other than localadmin, then make the corrections as necessary: remove any administrator that isn’t \`localadmin\` and/or rename \`Administrator\` to \`localadmin\`.
 
 3.  To verify that the admin account you know about is the well-known SID Administrator, run the following in powershell (note this uses powershell remoting, setting it up is covered in “Configure powershell remote” below) :
 
-````
-$var = foreach ($targetcomputer in (get-content "\\deployserver\LAPS\targetlist.txt") ) {
-write-output "connecting to:, $targetcomputer"
-Invoke-command -scriptblock {
-  function get-usersid{
-    param(
-    [string]$domain,
-    [string]$user
-    )
-    $objUser = New-Object System.Security.Principal.NTAccount("$domain", "$user")
-    $strSID = $objUser.Translate([System.Security.Principal.SecurityIdentifier])
-    $strSID.Value
-  }
-  if ($(get-usersid -domain $env:computername -user localadmin) -match 'S-1-5-21-..........-..........-..........-500') {
-    write-output “$env:computername,localadmin user is the well-known SID Administrator”
-  }
-  else {
-    write-output “$env:computername,localadmin user is not the well-known SID Administrator”
-  }
-} -computername $targetcomputer
-}
-$var | out-file c:\localadminsidlist.csv
-````
+    ````
+    $var = foreach ($targetcomputer in (get-content "\\deployserver\LAPS\targetlist.txt") ) {
+    write-output "connecting to:, $targetcomputer"
+    Invoke-command -scriptblock {
+    function get-usersid{
+        param(
+        [string]$domain,
+        [string]$user
+        )
+        $objUser = New-Object System.Security.Principal.NTAccount("$domain", "$user")
+        $strSID = $objUser.Translate([System.Security.Principal.SecurityIdentifier])
+        $strSID.Value
+    }
+    if ($(get-usersid -domain $env:computername -user localadmin) -match 'S-1-5-21-..........-..........-..........-500') {
+        write-output “$env:computername,localadmin user is the well-known SID Administrator”
+    }
+    else {
+        write-output “$env:computername,localadmin user is not the well-known SID Administrator”
+    }
+    } -computername $targetcomputer
+    }
+    $var | out-file c:\localadminsidlist.csv
+    ````
 
     You can review c:\localadminsidlist.csv to review status and make corrections. Remember the F4 “apply last selected style” hotkey in Excel is your friend. You might take advantage of this by disabling computer objects that are stale… etc.
 
@@ -255,39 +255,39 @@ Several guides state to deploy the LAPS GP CSE via group policy; I hate that met
 2.  CredSSP is not necessary for the benefit; without it enabled, you can’t access a network resource from a powershell remoting session (\`Enter-PSSession\` or \`Invoke-Command\`). Instead, we must copy down the MSI then execute it locally on the system via the powershell remoting session (\`Enter-PSSession\` or \`Invoke-Command\`):
 
 For 64-bit hosts:
-````
-foreach ($targetcomputer in (get-content "\\deployserver\LAPS\targetlist.txt") ) {
-copy "\\deployserver\LAPS\LAPS.x64.msi" \\$targetcomputer\c$
-Invoke-Command -scriptblock {
-  hostname
-  cmd.exe /c c:\Windows\system32\msiexec.exe /norestart /i "c:\LAPS.x64.msi" /l c:\lapsinst.log /qn ADDLOCAL=CSE
-} -computername $targetcomputer
-}
-````
+    ````
+    foreach ($targetcomputer in (get-content "\\deployserver\LAPS\targetlist.txt") ) {
+    copy "\\deployserver\LAPS\LAPS.x64.msi" \\$targetcomputer\c$
+    Invoke-Command -scriptblock {
+    hostname
+    cmd.exe /c c:\Windows\system32\msiexec.exe /norestart /i "c:\LAPS.x64.msi" /l c:\lapsinst.log /qn ADDLOCAL=CSE
+    } -computername $targetcomputer
+    }
+    ````
 
 For 32-bit hosts:
-````
-$targetcomputer = "[target host here]"
-copy "\\deployserver\LAPS\LAPS.x86.msi" \\$targetcomputer\c$
-Invoke-Command -scriptblock {
-  cmd.exe /c c:\Windows\system32\msiexec.exe /norestart /i "c:\LAPS.x86.msi"" /l c:\lapsinst.log /qn ADDLOCAL=CSE
-} -computername $targetcomputer
-````
+    ````
+    $targetcomputer = "[target host here]"
+    copy "\\deployserver\LAPS\LAPS.x86.msi" \\$targetcomputer\c$
+    Invoke-Command -scriptblock {
+    cmd.exe /c c:\Windows\system32\msiexec.exe /norestart /i "c:\LAPS.x86.msi"" /l c:\lapsinst.log /qn ADDLOCAL=CSE
+    } -computername $targetcomputer
+    ````
 
 3.  Verify installation by checking a few things are where they should be:
 
-````
-foreach ($targetcomputer in (get-content "\\deployserver\LAPS\targetlist.txt") ) {
-Invoke-Command -scriptblock {
-  if ( @(get-EventLog -logname "Application" -after (get-date).addminutes(-120) -message "*Local Administrator Password Solution*completed successfully.*").length -eq 1) {
-    write-output $("LAPS has installed correctly on, $env:COMPUTERNAME.")
-  }
-  else {
-    write-error $("LAPS install failed on, $env:COMPUTERNAME")
-  }
-} -computername $targetcomputer
-}
-````
+    ````
+    foreach ($targetcomputer in (get-content "\\deployserver\LAPS\targetlist.txt") ) {
+    Invoke-Command -scriptblock {
+    if ( @(get-EventLog -logname "Application" -after (get-date).addminutes(-120) -message "*Local Administrator Password     Solution*completed successfully.*").length -eq 1) {
+        write-output $("LAPS has installed correctly on, $env:COMPUTERNAME.")
+    }
+    else {
+        write-error $("LAPS install failed on, $env:COMPUTERNAME")
+    }
+    } -computername $targetcomputer
+    }
+    ````
 
 **Group Policy Configuration:**
 
@@ -315,11 +315,11 @@ Since we placed the ADMX and ADML files into the central policy store previously
 
 3.  Update group policy on the client.
 
-````gpupdate /force````
+    ````gpupdate /force````
 
 4.  Verify the configuration is present by checking the registry:
 
-````reg query “HKLM\SOFTWARE\Policies\Microsoft Services\AdmPwd”````
+    ````reg query “HKLM\SOFTWARE\Policies\Microsoft Services\AdmPwd”````
 
 5.  Continue to the *Access the LAPS controlled local administrative password* section below.
 
@@ -416,7 +416,7 @@ Troubleshooting is covered in detail in the Troubleshooting section of the LAPS_
 
 Quickly, LAPS will file away events into the Application Event Log. You can adjust the verbosity level of the event messages by changing the REG_DWORD:
 
-````HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\GPExtensions\{D76B9641-3288-4f75-942D-087DE603E3EA}: ExtensionDebugLevel````
+    ````HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\GPExtensions\{D76B9641-3288-4f75-942D-087DE603E3EA}: ExtensionDebugLevel````
 
 The values can be {0x0, 0x1, or 0x2} == {errors only, errors and warnings, log everything}.
 
